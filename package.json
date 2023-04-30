@@ -1,0 +1,16 @@
+{
+  "name": "english-conversation-bot",
+  "version": "1.0.0",
+  "description": "An Alexa skill for practicing English conversation using ChatGPT",
+  "main": "index.js",
+  "dependencies": {
+    "@slack/web-api": "^6.8.1",
+    "ask-sdk-core": "^2.12.0",
+    "openai": "^3.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
