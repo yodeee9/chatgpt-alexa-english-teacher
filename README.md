@@ -34,7 +34,7 @@ npm install openai @slack/web-api ask-sdk-core
 
 ### Alexa スキルのセットアップ
 
-1. Alexa Developer Console で新しいスキルを作成し、スキルのエンドポイントとして Lambda 関数の ARN を設定する。
+1. Alexa Developer Console でプライマリロケール「英語(US)」で新しいスキルを作成し、スキルのエンドポイントとして Lambda 関数の ARN を設定する。
 
 2. スキルのインタラクションモデルを定義する。インテント、スロット、サンプル発話を含めます。以下のインテントを定義する。
 - `StartConversationIntent`: 会話を開始する
