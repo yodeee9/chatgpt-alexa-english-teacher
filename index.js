@@ -99,6 +99,9 @@ const StartConversationIntentHandler = {
       && handlerInput.requestEnvelope.request.intent.name === 'StartConversationIntent';
   },
   async handle(handlerInput) {
+    // Initiate History
+    conversationHistory = [];
+    
     const answer = await ask(prompt);
     return handlerInput.responseBuilder
       .speak(`<voice name="Joanna"><lang xml:lang="en-US">${answer}</lang></voice>`)
