@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'chatgpt-alexa-english-teacher'
+Globals:
+  Function:
+    Timeout: 3
+Resources:
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AlexaEngilishAIBotFunction
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Environment:
+        Variables:
+          OPENAI_API_KEY: YOUR_OPENAI_API_KEY
+          SLACK_API_TOKEN: SLACK_API_TOKEN
+          SLACK_CHANNEL: SLACK_CHANNEL
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DynamoDBTable
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
+    Metadata:
+      SamResourceId: LambdaFunction
+Outputs:
+  MyLambdaFunction:
+    Description: Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - LambdaFunction
+      - Arn
+  MyDynamoDBTable:
+    Description: DynamoDB Table Name
+    Value:
+      Ref: DynamoDBTable
