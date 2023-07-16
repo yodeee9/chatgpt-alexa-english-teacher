@@ -27,7 +27,7 @@ npm install
 [SAMインストール手順](https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/install-sam-cli.html)
 ``` bash
 sam build -t template.yaml
-sam deploy
+sam deploy --guided
 ```
 
 3. 作成した Lambda 関数に、以下の環境変数を設定する。

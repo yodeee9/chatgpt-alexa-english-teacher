@@ -16,23 +16,15 @@ Resources:
           OPENAI_API_KEY: YOUR_OPENAI_API_KEY
           SLACK_API_TOKEN: SLACK_API_TOKEN
           SLACK_CHANNEL: SLACK_CHANNEL
-      Policies:
-      - DynamoDBCrudPolicy:
-          TableName:
-            Ref: DynamoDBTable
       Events:
         AlexaSkillEvent:
           Type: AlexaSkill
     Metadata:
       SamResourceId: LambdaFunction
 Outputs:
-  MyLambdaFunction:
+  LambdaFunction:
     Description: Lambda Function ARN
     Value:
       Fn::GetAtt:
       - LambdaFunction
       - Arn
-  MyDynamoDBTable:
-    Description: DynamoDB Table Name
-    Value:
-      Ref: DynamoDBTable
