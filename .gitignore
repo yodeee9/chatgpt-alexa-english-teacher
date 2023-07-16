@@ -131,3 +131,5 @@ dist
 
 # zip file
 *.zip
+samconfig.toml
+.aws-sam/

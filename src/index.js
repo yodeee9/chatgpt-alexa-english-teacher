@@ -2,6 +2,8 @@
 const { Configuration, OpenAIApi } = require("openai");
 const { WebClient } = require('@slack/web-api');
 const Alexa = require('ask-sdk-core');
+const AWS = require('aws-sdk');
+const ddb = new AWS.DynamoDB.DocumentClient();
 
 // Initialize Slack and OpenAI clients
 const slackClient = new WebClient(process.env.SLACK_API_TOKEN);
@@ -37,8 +39,56 @@ const prompt = `
 
 まずあなたは1を出力してください。
 `
-// Store conversation history
-let conversationHistory = [];
+
+/**
+ * Save a message to the conversation history in DynamoDB.
+ *
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} role - The role of the sender (either "user" or "assistant").
+ * @param {string} content - The content of the message.
+ */
+async function saveHistory(conversationId, role, content) {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE,
+    Item: {
+      'conversationId': conversationId,
+      'timestamp': Date.now(),
+      'message': {
+        'role': role,
+        'content': content,
+      },
+    },
+  };
+  try {
+    await ddb.put(params).promise();
+  } catch (error) {
+    console.error(`Error saving history to DynamoDB: ${error}`);
+  }
+}
+
+/**
+ * Get the conversation history from DynamoDB.
+ *
+ * @param {string} conversationId - The ID of the conversation.
+ * @returns {Promise<Array>} The conversation history.
+ */
+async function getHistory(conversationId) {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE,
+    KeyConditionExpression: 'conversationId = :id',
+    ExpressionAttributeValues: {
+      ':id': conversationId,
+    },
+    ScanIndexForward: true, // Return results in ascending order by sort key
+  };
+  try {
+    const data = await ddb.query(params).promise();
+    return data.Items.map(item => item.message);
+  } catch (error) {
+    console.error(`Error getting history from DynamoDB: ${error}`);
+    return [];
+  }
+}
 
 /**
  * Send a message to a Slack channel.
@@ -65,16 +115,15 @@ async function sendToSlack(channel, message) {
  * @param {string} [model="gpt-3.5-turbo-0301"] - The model to use for the ChatGPT API request.
  * @returns {Promise<string>} The generated response from the ChatGPT API.
  */
-async function ask(content, model = "gpt-3.5-turbo-0301") {
-  conversationHistory.push({ role: "user", content: content });
+async function ask(conversationId, content, model = "gpt-3.5-turbo-0301") {
+  await saveHistory(conversationId, 'user', content);
+  let conversationHistory = await getHistory(conversationId);
   const response = await openai.createChatCompletion({
     model: model,
     messages: conversationHistory,
   });
-  
   const answer = response.data.choices[0].message?.content;
-  conversationHistory.push({ role: "assistant", content: answer });
-
+  await saveHistory(conversationId, 'assistant', answer);
   return answer;
 }
 
@@ -99,10 +148,8 @@ const StartConversationIntentHandler = {
       && handlerInput.requestEnvelope.request.intent.name === 'StartConversationIntent';
   },
   async handle(handlerInput) {
-    // Initiate History
-    conversationHistory = [];
-    
-    const answer = await ask(prompt);
+    const sessionId = handlerInput.requestEnvelope.session.sessionId;
+    const answer = await ask(sessionId, prompt);
     return handlerInput.responseBuilder
       .speak(`<voice name="Joanna"><lang xml:lang="en-US">${answer}</lang></voice>`)
       .reprompt(`<voice name="Joanna"><lang xml:lang="en-US">${answer}</lang></voice>`)
@@ -120,7 +167,8 @@ const ConversationIntentHandler = {
   },
   async handle(handlerInput) {
     const userSpeech = handlerInput.requestEnvelope.request.intent.slots.UserReply.value;
-    const answer = await ask(userSpeech);
+    const sessionId = handlerInput.requestEnvelope.session.sessionId;
+    const answer = await ask(sessionId, userSpeech);
     return handlerInput.responseBuilder
       .speak(`<voice name="Joanna"><lang xml:lang="en-US">${answer}</lang></voice>`)
       .reprompt(`<voice name="Joanna"><lang xml:lang="en-US">${answer}</lang></voice>`)
@@ -135,20 +183,18 @@ const CancelAndStopIntentHandler = {
       && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
         || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
   },
-  handle(handlerInput) {
-    const historyText = conversationHistory
-      .slice(1) // Add this line to exclude the 0th element
-      .map((msg, i) => `- ${i % 2 === 0 ? "Teacher" : "You"}: ${msg.content}`)
-      .join("\n");
+  async handle(handlerInput) {
+    const sessionId = handlerInput.requestEnvelope.session.sessionId;
+    const conversationHistory = await getHistory(sessionId);
+    const historyText = conversationHistory.slice(1).map((msg, i) => `- ${i % 2 === 0 ? "Teacher" : "You"}: ${msg.content}`).join("\n");
     sendToSlack(process.env.SLACK_CHANNEL, historyText);
     const speechText = `<voice name="Joanna"><lang xml:lang="en-US">Good Bye</lang></voice>`;
-
     return handlerInput.responseBuilder
       .speak(speechText)
       .withSimpleCard('Good Bye', speechText)
       .withShouldEndSession(true)
       .getResponse();
-  }
+  },
 };
 
 // Export the Alexa skill handler

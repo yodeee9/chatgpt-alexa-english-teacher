@@ -14,23 +14,26 @@ Alexa を「Alexa、Please open ai english teacher」と呼びかけることで
 3. 「Install App」をクリックして、アプリをワークスペースにインストールする。インストールが完了すると、「Bot User OAuth Token」が表示される。このトークンをメモしておく。
 
 ### AWS Lambda のセットアップ
+  
 
-1. AWS Lambda で新しい関数を作成する。Node.js 18 をランタイムとして選択する。
+1. [npm](https://www.npmjs.com/) を使用して、必要なパッケージをインストールし、`node_modules` ディレクトリを作成する。
 
-2. 作成した Lambda 関数に、以下の環境変数を設定する。
+``` bash
+cd ./src
+npm install
+```
+
+2. AWS SAMを使用して、AWSリソースをデプロイする
+[SAMインストール手順](https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/install-sam-cli.html)
+``` bash
+sam build -t template.yaml
+sam deploy --guided
+```
+
+3. 作成した Lambda 関数に、以下の環境変数を設定する。
    - `SLACK_API_TOKEN`: Slack API トークン
    - `SLACK_CHANNEL`: Slack チャンネル ID
    - `OPENAI_API_KEY`: OpenAI API キー
-
-3. Lambda 関数のコードを、上記の参考コードで置き換えます。
-
-4. [npm](https://www.npmjs.com/) を使用して、必要なパッケージをインストールし、`node_modules` ディレクトリを作成する。
-  
-``` bash
-npm install openai @slack/web-api ask-sdk-core
-```
-
-5. `node_modules` ディレクトリ、Lambda 関数のコード（`index.js`）、および `package.json` を含む ZIP ファイルを作成し、Lambda 関数にアップロードする。
 
 ### Alexa スキルのセットアップ
 
@@ -51,7 +54,7 @@ npm install openai @slack/web-api ask-sdk-core
 
 5. スキルをビルドし、テストを行う。
 
-これで Alexa スキルが完成しました。Alexa に「Alexa、Please open ai english teacher」と呼びかけると、AI 英会話教師として英会話の練習を行うことができる。
+これでAlexa に「Alexa、Please open ai english teacher」と呼びかけると、AI 英会話教師として英会話の練習を行うことができる。
 また、会話が終了した際に、チャットログが Slack に送信される。
 
 
